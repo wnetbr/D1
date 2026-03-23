@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>W.Share | AirDrop Web</title>
+    <title>W.Share | Premium P2P</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -12,18 +12,18 @@
         :root {
             --apple-blue: #007AFF;
             --glass-bg: rgba(255, 255, 255, 0.08);
-            --glass-border: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.12);
             --text-main: #ffffff;
-            --text-sec: #a1a1a6;
+            --text-sec: #8e8e93;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
 
         body {
             margin: 0;
             font-family: -apple-system, system-ui, sans-serif;
             background: #000;
-            background-image: radial-gradient(circle at 50% -20%, #2c2c2e 0%, #000 80%);
+            background-image: radial-gradient(circle at 50% -20%, #1c1c1e 0%, #000 100%);
             color: var(--text-main);
             height: 100vh;
             display: flex;
@@ -32,232 +32,227 @@
             overflow: hidden;
         }
 
-        /* Glassmorphism Card */
+        /* Card Principal */
         .glass-container {
             background: var(--glass-bg);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
             border: 1px solid var(--glass-border);
-            border-radius: 40px;
+            border-radius: 42px;
             width: 90%;
             max-width: 400px;
-            padding: 40px 30px;
+            padding: 45px 35px;
             text-align: center;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
-            animation: fadeIn 0.8s ease-out;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.7);
+            transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        h1 { font-size: 32px; font-weight: 700; margin: 0 0 8px; letter-spacing: -1px; }
+        .sub-status { color: var(--text-sec); font-size: 14px; margin-bottom: 35px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
-        h1 { font-size: 28px; font-weight: 600; margin: 0 0 10px; letter-spacing: -0.5px; }
-        p { color: var(--text-sec); font-size: 14px; margin-bottom: 30px; }
-
-        /* Botões Estilo iOS */
+        /* Botões Estilo Action Center */
         .action-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 12px;
             margin-bottom: 25px;
         }
 
         .apple-btn {
-            background: var(--glass-bg);
+            background: rgba(255,255,255,0.06);
             border: 1px solid var(--glass-border);
-            border-radius: 18px;
-            padding: 15px;
+            border-radius: 20px;
+            padding: 18px;
             color: white;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             font-size: 13px;
+            font-weight: 500;
         }
 
-        .apple-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
-        .apple-btn svg { width: 24px; height: 24px; fill: var(--apple-blue); }
+        .apple-btn:active { background: rgba(255,255,255,0.15); transform: scale(0.96); }
+        .apple-btn svg { width: 26px; height: 26px; stroke: var(--apple-blue); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-        .btn-full {
+        .btn-connect {
             grid-column: span 2;
             background: var(--apple-blue);
-            font-weight: 600;
             border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 15px;
+            margin-top: 5px;
         }
 
-        /* QR Code Modal */
+        /* Modais de QR e Scanner */
         #qr-modal, #scanner-modal {
             display: none;
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
+            inset: 0;
+            background: rgba(0,0,0,0.92);
             z-index: 100;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(25px);
+            animation: modalFade 0.3s ease;
         }
 
-        #qrcode { 
-            background: white; 
-            padding: 15px; 
-            border-radius: 20px; 
-            margin-bottom: 20px;
-        }
+        @keyframes modalFade { from { opacity: 0; transform: scale(1.1); } to { opacity: 1; transform: scale(1); } }
 
-        #reader { 
-            width: 300px; 
-            border-radius: 20px; 
-            overflow: hidden; 
-            border: 1px solid var(--glass-border) !important;
-        }
+        #qrcode { background: #fff; padding: 20px; border-radius: 28px; margin-bottom: 25px; box-shadow: 0 0 30px rgba(255,255,255,0.1); }
+        #reader { width: 300px; border-radius: 24px; overflow: hidden; border: none !important; }
 
-        /* Transfer Area */
+        /* Área de Transferência */
         .drop-zone {
-            background: rgba(255,255,255,0.03);
-            border: 2px dashed var(--glass-border);
-            border-radius: 25px;
-            padding: 50px 20px;
-            margin-top: 10px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            padding: 60px 20px;
+            cursor: pointer;
             transition: 0.3s;
         }
 
-        .progress-ring {
-            width: 100%;
-            height: 4px;
-            background: var(--glass-border);
-            border-radius: 2px;
-            margin-top: 20px;
-            display: none;
-            overflow: hidden;
-        }
+        .drop-zone:active { background: rgba(255,255,255,0.06); }
 
-        #fill { height: 100%; width: 0%; background: var(--apple-blue); transition: 0.3s; }
-        
-        .status-dot {
-            width: 8px; height: 8px; background: #ff3b30;
-            border-radius: 50%; display: inline-block; margin-right: 5px;
+        .progress-bar {
+            width: 100%; height: 6px; background: rgba(255,255,255,0.1);
+            border-radius: 10px; margin-top: 25px; overflow: hidden; display: none;
         }
-        .online { background: #34c759; box-shadow: 0 0 10px #34c759; }
+        #fill { width: 0%; height: 100%; background: var(--apple-blue); transition: 0.3s; }
 
-        input[type="file"] { display: none; }
+        .status-dot { width: 10px; height: 10px; background: #ff3b30; border-radius: 50%; }
+        .online { background: #34c759; box-shadow: 0 0 12px #34c759; }
+
+        input[type="text"] {
+            width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+            color: white; padding: 16px; border-radius: 16px; margin: 10px 0;
+            text-align: center; font-size: 18px; font-weight: 600; letter-spacing: 2px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="glass-container">
+    <div class="glass-container" id="main-card">
         <h1>W.Share</h1>
-        <p id="sub-text"><span class="status-dot" id="dot"></span> Gerando ID seguro...</p>
+        <div class="sub-status" id="sub-status">
+            <div class="status-dot" id="dot"></div>
+            <span id="status-text">Iniciando...</span>
+        </div>
 
         <div id="setup-view">
             <div class="action-grid">
-                <button class="apple-btn" onclick="showMyQR()">
-                    <svg viewBox="0 0 24 24"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zM13 3v8h8V3h-8zm6 6h-4V5h4v4zM13 13h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm2 2h2v2h-2v-2zm2-2h2v2h-2v-2zm0-2h2v2h-2v-2zm2 2h2v2h-2v-2z"/></svg>
-                    Meu QR
+                <button class="apple-btn" onclick="openQR()">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                    Meu Código
                 </button>
-                <button class="apple-btn" onclick="startScanner()">
-                    <svg viewBox="0 0 24 24"><path d="M4 4h7V2H4c-1.1 0-2 .9-2 2v7h2V4zm6 9l-4 5h12l-3-4-2.03 2.71L10 13zm7-11h-7v2h7v7h2V4c0-1.1-.9-2-2-2zM4 20h7v2H4c-1.1 0-2-.9-2-2v-7h2v7zm13-7h2v7c0 1.1-.9 2-2 2h-7v-2h7v-7z"/></svg>
+                <button class="apple-btn" onclick="openScanner()">
+                    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h18a2 2 0 0 1 2 2z"></path><path d="M12 8v8"></path><path d="M8 12h8"></path></svg>
                     Escanear
                 </button>
             </div>
-            <div style="font-size: 11px; color: var(--text-sec);">Ou digite o ID:</div>
-            <input type="text" id="manual-id" placeholder="ID do parceiro" style="width:100%; background:transparent; border:1px solid var(--glass-border); color:white; padding:12px; border-radius:12px; margin: 10px 0;">
-            <button class="apple-btn btn-full" onclick="connectManual()">Conectar</button>
+            <input type="text" id="manual-id" maxlength="4" placeholder="0000">
+            <button class="apple-btn btn-connect" onclick="connectManual()">Conectar Dispositivo</button>
         </div>
 
         <div id="transfer-view" style="display:none;">
             <div class="drop-zone" onclick="document.getElementById('file-input').click()">
-                <svg style="width:40px; height:40px; fill:var(--apple-blue); margin-bottom:15px;" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-                <div style="font-weight: 500;">Enviar Mídia</div>
-                <div style="font-size: 12px; color: var(--text-sec);">Apps, Vídeos ou Fotos</div>
+                <svg style="width:48px; height:48px; stroke:var(--apple-blue); margin-bottom:15px;" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <div style="font-weight: 600; font-size: 17px;">Enviar para Pareado</div>
+                <div style="font-size: 13px; color: var(--text-sec); margin-top:5px;">Toque para escolher mídias</div>
             </div>
-            <div class="progress-ring" id="p-ring"><div id="fill"></div></div>
-            <div id="transfer-status" style="margin-top:15px; font-size:13px;">Pronto para transferir</div>
-            <input type="file" id="file-input">
+            <div class="progress-bar" id="p-bar"><div id="fill"></div></div>
+            <div id="file-info" style="margin-top:20px; font-size:14px; color: var(--text-sec);">Aguardando envio...</div>
+            <input type="file" id="file-input" hidden>
         </div>
     </div>
 
-    <div id="qr-modal" onclick="this.style.display='none'">
+    <div id="qr-modal" onclick="closeModals()">
         <div id="qrcode"></div>
-        <p>Aponte a câmera para este código</p>
+        <p style="font-weight: 500;">Escaneie para conectar</p>
+        <button class="apple-btn" style="background:none; border:none; color:var(--apple-blue); font-size:16px;">Toque para voltar</button>
     </div>
 
     <div id="scanner-modal">
         <div id="reader"></div>
-        <button class="apple-btn" style="margin-top:20px;" onclick="stopScanner()">Cancelar</button>
+        <button class="apple-btn" style="margin-top:40px; width: 180px; background:rgba(255,59,48,0.15); border-color:rgba(255,59,48,0.3); color:#ff453a;" onclick="stopScanner()">Cancelar</button>
     </div>
 
     <script>
         let peer, conn;
-        const subText = document.getElementById('sub-text');
+        const statusText = document.getElementById('status-text');
         const dot = document.getElementById('dot');
 
-        // Inicializar PeerJS
-        peer = new Peer();
+        // Gerar ID de 4 dígitos
+        const shortId = Math.floor(1000 + Math.random() * 9000).toString();
+
+        peer = new Peer(shortId);
 
         peer.on('open', (id) => {
             dot.classList.add('online');
-            subText.innerHTML = `<span class="status-dot online"></span> ID: ${id}`;
+            statusText.innerHTML = `ID Ativo: <strong>${id}</strong>`;
             new QRCode(document.getElementById("qrcode"), {
-                text: id,
-                width: 200,
-                height: 200,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
+                text: id, width: 220, height: 220, colorDark : "#000", colorLight : "#fff", correctLevel : QRCode.CorrectLevel.H
             });
         });
 
+        // Evento quando alguém conecta em você
         peer.on('connection', (c) => {
             conn = c;
-            setupTransfer();
+            initTransferUI();
         });
 
-        function showMyQR() { document.getElementById('qr-modal').style.display = 'flex'; }
-
-        function startScanner() {
+        function openQR() { document.getElementById('qr-modal').style.display = 'flex'; }
+        
+        function openScanner() {
             document.getElementById('scanner-modal').style.display = 'flex';
-            const html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                (decodedText) => {
-                    document.getElementById('manual-id').value = decodedText;
-                    stopScanner();
-                    connectManual();
-                }
-            ).catch(err => alert("Erro ao acessar câmera: " + err));
-            window.scanner = html5QrCode;
+            const scanner = new Html5Qrcode("reader");
+            scanner.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (id) => {
+                document.getElementById('manual-id').value = id;
+                stopScanner();
+                connectManual();
+            });
+            window.activeScanner = scanner;
         }
 
         function stopScanner() {
-            if(window.scanner) window.scanner.stop();
-            document.getElementById('scanner-modal').style.display = 'none';
+            if(window.activeScanner) {
+                window.activeScanner.stop().then(() => {
+                    document.getElementById('scanner-modal').style.display = 'none';
+                });
+            } else {
+                document.getElementById('scanner-modal').style.display = 'none';
+            }
+        }
+
+        function closeModals() {
+            document.getElementById('qr-modal').style.display = 'none';
         }
 
         function connectManual() {
             const id = document.getElementById('manual-id').value;
             if(!id) return;
             conn = peer.connect(id);
-            setupTransfer();
+            initTransferUI();
         }
 
-        function setupTransfer() {
+        function initTransferUI() {
+            closeModals();
             document.getElementById('setup-view').style.display = 'none';
             document.getElementById('transfer-view').style.display = 'block';
-            subText.innerText = "Dispositivo Pareado";
+            statusText.innerText = "Conectado P2P";
 
             conn.on('data', (data) => {
                 const blob = new Blob([data.file], { type: data.type });
-                const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
+                a.href = URL.createObjectURL(blob);
                 a.download = data.name;
                 a.click();
-                document.getElementById('transfer-status').innerText = "Recebido: " + data.name;
+                document.getElementById('file-info').innerText = "Recebido: " + data.name;
             });
         }
 
@@ -265,20 +260,17 @@
             const file = e.target.files[0];
             if(!file || !conn) return;
 
-            document.getElementById('p-ring').style.display = 'block';
+            document.getElementById('p-bar').style.display = 'block';
             document.getElementById('fill').style.width = '100%';
-            document.getElementById('transfer-status').innerText = "Enviando " + file.name + "...";
+            document.getElementById('file-info').innerText = "Enviando arquivo...";
 
-            conn.send({
-                file: file,
-                name: file.name,
-                type: file.type
-            });
+            conn.send({ file: file, name: file.name, type: file.type });
 
             setTimeout(() => {
-                document.getElementById('transfer-status').innerText = "Enviado com sucesso!";
+                document.getElementById('file-info').innerText = "Enviado com sucesso!";
                 document.getElementById('fill').style.width = '0%';
-            }, 2500);
+                setTimeout(() => document.getElementById('p-bar').style.display = 'none', 1000);
+            }, 2000);
         };
     </script>
 </body>
