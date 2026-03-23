@@ -3,20 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>W.Share | P2P Transfer</title>
+    <title>W.Share | AirDrop Web</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    
     <style>
         :root {
-            --glass: rgba(255, 255, 255, 0.1);
-            --border: rgba(255, 255, 255, 0.2);
-            --accent: #007AFF; /* Apple Blue */
+            --apple-blue: #007AFF;
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --text-main: #ffffff;
+            --text-sec: #a1a1a6;
         }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
             margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: radial-gradient(circle at top right, #1e1e2e, #000);
-            color: white;
+            font-family: -apple-system, system-ui, sans-serif;
+            background: #000;
+            background-image: radial-gradient(circle at 50% -20%, #2c2c2e 0%, #000 80%);
+            color: var(--text-main);
             height: 100vh;
             display: flex;
             align-items: center;
@@ -24,177 +32,243 @@
             overflow: hidden;
         }
 
-        .glass-card {
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--border);
-            border-radius: 30px;
-            padding: 40px;
+        /* Glassmorphism Card */
+        .glass-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
             width: 90%;
-            max-width: 450px;
+            max-width: 400px;
+            padding: 40px 30px;
             text-align: center;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+            animation: fadeIn 0.8s ease-out;
         }
 
-        h1 { font-weight: 300; letter-spacing: -1px; margin-bottom: 30px; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-        .drop-zone {
-            border: 2px dashed var(--border);
-            border-radius: 20px;
-            padding: 60px 20px;
-            transition: 0.3s;
+        h1 { font-size: 28px; font-weight: 600; margin: 0 0 10px; letter-spacing: -0.5px; }
+        p { color: var(--text-sec); font-size: 14px; margin-bottom: 30px; }
+
+        /* Botões Estilo iOS */
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .apple-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 15px;
+            color: white;
             cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .apple-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
+        .apple-btn svg { width: 24px; height: 24px; fill: var(--apple-blue); }
+
+        .btn-full {
+            grid-column: span 2;
+            background: var(--apple-blue);
+            font-weight: 600;
+            border: none;
+        }
+
+        /* QR Code Modal */
+        #qr-modal, #scanner-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        #qrcode { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 20px; 
             margin-bottom: 20px;
         }
 
-        .drop-zone:hover {
-            border-color: var(--accent);
-            background: rgba(0, 122, 255, 0.05);
+        #reader { 
+            width: 300px; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            border: 1px solid var(--glass-border) !important;
         }
 
-        .status-container {
-            margin-top: 20px;
-            font-size: 0.9em;
-            color: #ccc;
+        /* Transfer Area */
+        .drop-zone {
+            background: rgba(255,255,255,0.03);
+            border: 2px dashed var(--glass-border);
+            border-radius: 25px;
+            padding: 50px 20px;
+            margin-top: 10px;
+            transition: 0.3s;
         }
 
-        #progress-container {
+        .progress-ring {
             width: 100%;
-            height: 6px;
-            background: var(--border);
-            border-radius: 10px;
-            margin: 20px 0;
+            height: 4px;
+            background: var(--glass-border);
+            border-radius: 2px;
+            margin-top: 20px;
             display: none;
             overflow: hidden;
         }
 
-        #progress-bar {
-            width: 0%;
-            height: 100%;
-            background: var(--accent);
-            transition: width 0.1s;
+        #fill { height: 100%; width: 0%; background: var(--apple-blue); transition: 0.3s; }
+        
+        .status-dot {
+            width: 8px; height: 8px; background: #ff3b30;
+            border-radius: 50%; display: inline-block; margin-right: 5px;
         }
-
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 50px;
-            font-weight: 500;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            transition: transform 0.2s;
-        }
-
-        .btn-primary:active { transform: scale(0.95); }
+        .online { background: #34c759; box-shadow: 0 0 10px #34c759; }
 
         input[type="file"] { display: none; }
-
-        .peer-id {
-            background: rgba(0,0,0,0.3);
-            padding: 5px 15px;
-            border-radius: 10px;
-            font-family: monospace;
-            font-size: 1.1em;
-            color: var(--accent);
-        }
     </style>
 </head>
 <body>
 
-    <div class="glass-card">
+    <div class="glass-container">
         <h1>W.Share</h1>
-        
-        <div id="setup">
-            <p>Seu ID para conexão:</p>
-            <div class="peer-id" id="my-id">Gerando...</div>
-            <br>
-            <input type="text" id="remote-id" placeholder="ID do destinatário" 
-                   style="background: transparent; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 10px; width: 80%; margin-bottom: 10px;">
-            <br>
-            <button class="btn-primary" onclick="connectToPeer()">Conectar</button>
+        <p id="sub-text"><span class="status-dot" id="dot"></span> Gerando ID seguro...</p>
+
+        <div id="setup-view">
+            <div class="action-grid">
+                <button class="apple-btn" onclick="showMyQR()">
+                    <svg viewBox="0 0 24 24"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zM3 21h8v-8H3v8zm2-6h4v4H5v-4zM13 3v8h8V3h-8zm6 6h-4V5h4v4zM13 13h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm2 2h2v2h-2v-2zm2-2h2v2h-2v-2zm0-2h2v2h-2v-2zm2 2h2v2h-2v-2z"/></svg>
+                    Meu QR
+                </button>
+                <button class="apple-btn" onclick="startScanner()">
+                    <svg viewBox="0 0 24 24"><path d="M4 4h7V2H4c-1.1 0-2 .9-2 2v7h2V4zm6 9l-4 5h12l-3-4-2.03 2.71L10 13zm7-11h-7v2h7v7h2V4c0-1.1-.9-2-2-2zM4 20h7v2H4c-1.1 0-2-.9-2-2v-7h2v7zm13-7h2v7c0 1.1-.9 2-2 2h-7v-2h7v-7z"/></svg>
+                    Escanear
+                </button>
+            </div>
+            <div style="font-size: 11px; color: var(--text-sec);">Ou digite o ID:</div>
+            <input type="text" id="manual-id" placeholder="ID do parceiro" style="width:100%; background:transparent; border:1px solid var(--glass-border); color:white; padding:12px; border-radius:12px; margin: 10px 0;">
+            <button class="apple-btn btn-full" onclick="connectManual()">Conectar</button>
         </div>
 
-        <div id="transfer-area" style="display:none;">
+        <div id="transfer-view" style="display:none;">
             <div class="drop-zone" onclick="document.getElementById('file-input').click()">
-                <p>Arraste mídias ou apps aqui</p>
-                <small>ou clique para selecionar</small>
+                <svg style="width:40px; height:40px; fill:var(--apple-blue); margin-bottom:15px;" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                <div style="font-weight: 500;">Enviar Mídia</div>
+                <div style="font-size: 12px; color: var(--text-sec);">Apps, Vídeos ou Fotos</div>
             </div>
+            <div class="progress-ring" id="p-ring"><div id="fill"></div></div>
+            <div id="transfer-status" style="margin-top:15px; font-size:13px;">Pronto para transferir</div>
             <input type="file" id="file-input">
-            
-            <div id="progress-container">
-                <div id="progress-bar"></div>
-            </div>
-            
-            <div class="status-container" id="status">Conectado e pronto.</div>
         </div>
     </div>
 
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-    <script>
-        let peer;
-        let conn;
-        const myIdDisplay = document.getElementById('my-id');
-        const statusDisplay = document.getElementById('status');
-        const progressBar = document.getElementById('progress-bar');
-        const progressContainer = document.getElementById('progress-container');
+    <div id="qr-modal" onclick="this.style.display='none'">
+        <div id="qrcode"></div>
+        <p>Aponte a câmera para este código</p>
+    </div>
 
-        // Inicializa o Peer
+    <div id="scanner-modal">
+        <div id="reader"></div>
+        <button class="apple-btn" style="margin-top:20px;" onclick="stopScanner()">Cancelar</button>
+    </div>
+
+    <script>
+        let peer, conn;
+        const subText = document.getElementById('sub-text');
+        const dot = document.getElementById('dot');
+
+        // Inicializar PeerJS
         peer = new Peer();
 
         peer.on('open', (id) => {
-            myIdDisplay.innerText = id;
-        });
-
-        // Aguarda conexão de entrada
-        peer.on('connection', (connection) => {
-            conn = connection;
-            setupConnection();
-        });
-
-        function connectToPeer() {
-            const remoteId = document.getElementById('remote-id').value;
-            if (!remoteId) return alert("Insira um ID!");
-            
-            conn = peer.connect(remoteId);
-            setupConnection();
-        }
-
-        function setupConnection() {
-            document.getElementById('setup').style.display = 'none';
-            document.getElementById('transfer-area').style.display = 'block';
-
-            conn.on('open', () => {
-                statusDisplay.innerText = "Conexão estabelecida!";
+            dot.classList.add('online');
+            subText.innerHTML = `<span class="status-dot online"></span> ID: ${id}`;
+            new QRCode(document.getElementById("qrcode"), {
+                text: id,
+                width: 200,
+                height: 200,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
             });
+        });
 
-            // Receber arquivo
-            conn.on('data', (data) => {
-                if (data.file) {
-                    const blob = new Blob([data.file], { type: data.type });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = data.name;
-                    a.click();
-                    statusDisplay.innerText = "Arquivo recebido: " + data.name;
+        peer.on('connection', (c) => {
+            conn = c;
+            setupTransfer();
+        });
+
+        function showMyQR() { document.getElementById('qr-modal').style.display = 'flex'; }
+
+        function startScanner() {
+            document.getElementById('scanner-modal').style.display = 'flex';
+            const html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    document.getElementById('manual-id').value = decodedText;
+                    stopScanner();
+                    connectManual();
                 }
+            ).catch(err => alert("Erro ao acessar câmera: " + err));
+            window.scanner = html5QrCode;
+        }
+
+        function stopScanner() {
+            if(window.scanner) window.scanner.stop();
+            document.getElementById('scanner-modal').style.display = 'none';
+        }
+
+        function connectManual() {
+            const id = document.getElementById('manual-id').value;
+            if(!id) return;
+            conn = peer.connect(id);
+            setupTransfer();
+        }
+
+        function setupTransfer() {
+            document.getElementById('setup-view').style.display = 'none';
+            document.getElementById('transfer-view').style.display = 'block';
+            subText.innerText = "Dispositivo Pareado";
+
+            conn.on('data', (data) => {
+                const blob = new Blob([data.file], { type: data.type });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = data.name;
+                a.click();
+                document.getElementById('transfer-status').innerText = "Recebido: " + data.name;
             });
         }
 
-        // Lógica de envio de arquivo
         document.getElementById('file-input').onchange = (e) => {
             const file = e.target.files[0];
-            if (!file) return;
+            if(!file || !conn) return;
 
-            statusDisplay.innerText = "Enviando: " + file.name;
-            progressContainer.style.display = 'block';
-            progressBar.style.width = '100%'; // WebRTC DataChannel simples
+            document.getElementById('p-ring').style.display = 'block';
+            document.getElementById('fill').style.width = '100%';
+            document.getElementById('transfer-status').innerText = "Enviando " + file.name + "...";
 
-            // Envia o arquivo como um Blob/ArrayBuffer
             conn.send({
                 file: file,
                 name: file.name,
@@ -202,9 +276,9 @@
             });
 
             setTimeout(() => {
-                statusDisplay.innerText = "Enviado com sucesso!";
-                progressBar.style.width = '0%';
-            }, 2000);
+                document.getElementById('transfer-status').innerText = "Enviado com sucesso!";
+                document.getElementById('fill').style.width = '0%';
+            }, 2500);
         };
     </script>
 </body>
